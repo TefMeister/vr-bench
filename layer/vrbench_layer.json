@@ -1,0 +1,11 @@
+{
+  "file_format_version": "1.0.0",
+  "api_layer": {
+    "name": "XR_APILAYER_LANES_vr_bench",
+    "library_path": "./vrbench_layer.dll",
+    "api_version": "1.0",
+    "implementation_version": "1",
+    "description": "VR Bench (64-bit): pretend hands and buttons for a VR game, and the look-at-this mark",
+    "disable_environment": "DISABLE_VRBENCH_LAYER"
+  }
+}

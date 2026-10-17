@@ -252,4 +252,25 @@ inline Kind lookup(const Input& in, const char* binding_path, int& hand, float& 
     return NONE;
 }
 
+// ---- how a file value meets the runtime's own ("live") answer ---------------------------------------------------
+// OpenXR lets a button action sit on a trigger/value binding and a float action on a button, so a value is first
+// shaped to what the game asked for; then SET replaces the live answer and ADD puts the file on top of it. A live
+// answer that is not active counts as nothing.
+inline bool as_bool(Kind k, float f, bool b) { return k == FLOAT ? f >= kTriggerClickAt : b; }
+inline float as_float(Kind k, float f, bool b) { return k == BOOL ? (b ? 1.0f : 0.0f) : f; }
+inline bool mix_bool(Input::Mode m, bool live_active, bool live, bool file) {
+    return m == Input::ADD ? ((live_active && live) || file) : file;
+}
+inline float mix_float(Input::Mode m, bool live_active, float live, float file) {
+    if (m != Input::ADD) return file;
+    const float l = live_active ? live : 0.0f;
+    return l > file ? l : file;
+}
+inline float clamp1(float v) { return v > 1.0f ? 1.0f : v < -1.0f ? -1.0f : v; }
+inline void mix_vec2(Input::Mode m, bool live_active, float lx, float ly, float fx, float fy, float& ox, float& oy) {
+    if (m != Input::ADD) { ox = fx; oy = fy; return; }
+    ox = clamp1((live_active ? lx : 0.0f) + fx);
+    oy = clamp1((live_active ? ly : 0.0f) + fy);
+}
+
 } // namespace vb

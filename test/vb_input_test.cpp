@@ -92,6 +92,35 @@ static void wrong_version_rejected() {
     CHECK(!in.valid);
 }
 
+// ---- the layer's mixing rules (Task 2): how a file value meets the runtime's own ("live") answer ----------------
+static void float_binding_asked_as_button() {
+    CHECK(vb::as_bool(vb::FLOAT, 0.8f, false) == true);    // trigger/value bound to a button action: 0.75 and up is pressed
+    CHECK(vb::as_bool(vb::FLOAT, 0.5f, false) == false);
+    CHECK(vb::as_bool(vb::BOOL, 0.0f, true) == true);
+    CHECK(vb::as_float(vb::BOOL, 0.0f, true) == 1.0f);     // a button bound to a float action: 1 or 0
+    CHECK(vb::as_float(vb::FLOAT, 0.3f, false) == 0.3f);
+}
+
+static void set_mode_replaces_live() {
+    CHECK(vb::mix_bool(vb::Input::SET, true, true, false) == false);
+    CHECK(vb::mix_float(vb::Input::SET, true, 1.0f, 0.2f) == 0.2f);
+    float ox = 9, oy = 9;
+    vb::mix_vec2(vb::Input::SET, true, 1.0f, 1.0f, 0.1f, -0.2f, ox, oy);
+    CHECK(ox == 0.1f);
+    CHECK(oy == -0.2f);
+}
+
+static void add_mode_mixes_with_live() {
+    CHECK(vb::mix_bool(vb::Input::ADD, true, true, false) == true);     // either pressed = pressed
+    CHECK(vb::mix_bool(vb::Input::ADD, false, true, false) == false);   // an inactive live answer counts as nothing
+    CHECK(vb::mix_float(vb::Input::ADD, true, 0.6f, 0.4f) == 0.6f);     // the larger
+    CHECK(vb::mix_float(vb::Input::ADD, false, 0.6f, 0.4f) == 0.4f);
+    float ox = 0, oy = 0;
+    vb::mix_vec2(vb::Input::ADD, true, 0.8f, -0.9f, 0.5f, -0.5f, ox, oy);   // the sum, clamped to +-1
+    CHECK(ox == 1.0f);
+    CHECK(oy == -1.0f);
+}
+
 int main() {
     parses_v1();
     left_trigger_value();
@@ -102,6 +131,9 @@ int main() {
     unset_hand_value_is_none();
     bad_json_keeps_previous();
     wrong_version_rejected();
+    float_binding_asked_as_button();
+    set_mode_replaces_live();
+    add_mode_mixes_with_live();
     std::printf("%d passed, %d failed\n", g_pass, g_fail);
     return g_fail == 0 ? 0 : 1;
 }
