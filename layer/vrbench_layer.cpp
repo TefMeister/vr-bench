@@ -199,21 +199,49 @@ bool note_change(const XrActionStateGetInfo* info, const V& value, V Last::*slot
     return last.changed_at_sync == g_sync_count;
 }
 
+// why a controller pose was or was not answered from the file; logged only when it changes, so a run that never
+// takes effect says why in one line instead of leaving the log silent
+enum PoseWhy { WHY_ANSWERED, WHY_NO_ROOM, WHY_NO_BINDING, WHY_NOT_SET, WHY_BASE_LOST, WHY_COUNT };
+const char* const kWhyText[] = { "answered from the file", "no room space for the session",
+                                 "the action has no binding we know", "the file sets no pose for that hand",
+                                 "the base space could not be located" };
+int g_last_why[2] = { -1, -1 };   // per hand slot (0 left, 1 right / unknown)
+
+void note_why(XrAction action, int hand, int why) {
+    const int slot = hand == 0 ? 0 : 1;
+    if (g_last_why[slot] == why) return;
+    g_last_why[slot] = why;
+    size_t bound = 0;
+    auto it = g_bindings.find(action);
+    if (it != g_bindings.end()) bound = it->second.size();
+    vb::vb_log("pose %s: %s (%zu bindings for this action, %zu actions bound, %zu controller spaces)",
+               hand == 0 ? "left" : hand == 1 ? "right" : "unknown hand", kWhyText[why], bound, g_bindings.size(),
+               g_controllers.size());
+}
+
 // the file pose for a controller space relative to `base`; false = answer live
 bool file_pose(XrSpace space, XrSpace base, XrTime time, XrPosef& out) {
     if (!poses_on()) return false;
     auto c = g_controllers.find(space);
     if (c == g_controllers.end() || g_controllers.count(base) != 0) return false;
-    auto r = g_room.find(c->second.session);
-    if (r == g_room.end()) return false;
     int hand = -1; float f = 0, vx = 0, vy = 0; bool b = false;
+    auto r = g_room.find(c->second.session);
+    if (r == g_room.end()) { note_why(c->second.action, hand, WHY_NO_ROOM); return false; }
     const vb::Kind k = file_value(c->second.action, c->second.subaction, hand, f, b, vx, vy);
-    if (k != vb::POSE_GRIP && k != vb::POSE_AIM) return false;
+    if (k != vb::POSE_GRIP && k != vb::POSE_AIM) {
+        const bool known = binding_for(c->second.action, 0) != nullptr || binding_for(c->second.action, 1) != nullptr;
+        if (!known) note_why(c->second.action, hand, WHY_NO_BINDING);
+        return false;   // a bound hand the file leaves alone is normal (the other hand), so it is not logged
+    }
     const vb::Pose& p = k == vb::POSE_GRIP ? g_input.hand[hand].grip : g_input.hand[hand].aim;
     const XrPosef hand_in_room{{p.qx, p.qy, p.qz, p.qw}, {p.px, p.py, p.pz}};
     const XrPosef space_in_room = compose(hand_in_room, c->second.offset);
     XrSpaceLocation bl{XR_TYPE_SPACE_LOCATION};   // where the base is in the room right now (the head keeps moving)
-    if (XR_FAILED(g_next_locate_space(base, r->second, time, &bl)) || (bl.locationFlags & kValid) != kValid) return false;
+    if (XR_FAILED(g_next_locate_space(base, r->second, time, &bl)) || (bl.locationFlags & kValid) != kValid) {
+        note_why(c->second.action, hand, WHY_BASE_LOST);
+        return false;
+    }
+    note_why(c->second.action, hand, WHY_ANSWERED);
     out = relative(bl.pose, space_in_room);
     return true;
 }
@@ -360,8 +388,14 @@ XRAPI_ATTR XrResult XRAPI_CALL vbl_xrGetActionStatePose(XrSession session, const
 
 XRAPI_ATTR XrResult XRAPI_CALL vbl_xrLocateSpace(XrSpace space, XrSpace base, XrTime time, XrSpaceLocation* location) {
     const XrResult r = g_next_locate_space(space, base, time, location);
-    if (XR_FAILED(r) || location == nullptr) return r;
     std::lock_guard _{g_mtx};
+    static bool logged_first = false;
+    if (!logged_first && g_enabled && g_controllers.count(space) != 0) {
+        logged_first = true;
+        vb::vb_log("first controller locate: runtime said %d, flags 0x%llx", static_cast<int>(r),
+                   location ? static_cast<unsigned long long>(location->locationFlags) : 0ull);
+    }
+    if (XR_FAILED(r) || location == nullptr) return r;
     if (time > g_last_time) g_last_time = time;
     XrPosef pose{};
     if (!file_pose(space, base, time, pose)) return r;
