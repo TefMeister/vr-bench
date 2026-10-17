@@ -70,7 +70,8 @@ Requirements
 Shout outs
 
 
-See CREDITS.md. If you should be credited here and are not, email us and we will fix it as soon as we can.
+VR Bench is made with the knowledge gained from using elliotttate's tools, above all his OpenXR Simulator
+(https://github.com/elliotttate/OpenXR-Simulator). See CREDITS.md for everyone else. If you should be credited here and are not, email us and we will fix it as soon as we can.
 
 
 Licence
