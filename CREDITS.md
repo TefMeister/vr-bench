@@ -13,5 +13,5 @@ VR Bench stands on other people's work. One line per person or project, name fir
 - The Khronos Group - the OpenXR headers in third_party/openxr (Apache-2.0 OR MIT).
 - OBS Studio (https://obsproject.com) and exeldro's Source Record plugin, used for the recordings.
 
-If you should be credited here and are not, email us and we will fix it as soon as we can. We honour
+If you should be credited here and are not, open an issue on GitHub and we will fix it as soon as we can. We honour
 correction and removal requests from rights holders.
