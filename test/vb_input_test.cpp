@@ -77,6 +77,20 @@ static void unset_hand_value_is_none() {
     CHECK(f == 1.0f);
 }
 
+// 2026-11-01: Village binds "/input/squeeze" and "/input/trigger" bare; the thumb rest as thumbrest/touch
+static void bare_paths_and_thumbrest() {
+    vb::Input in = parsed();
+    int h = -1; float f = 0, vx = 0, vy = 0; bool b = false;
+    CHECK(vb::lookup(in, "/user/hand/right/input/squeeze", h, f, b, vx, vy) == vb::FLOAT);
+    CHECK(h == 1 && f == 1.0f);
+    CHECK(vb::lookup(in, "/user/hand/left/input/trigger", h, f, b, vx, vy) == vb::FLOAT);
+    CHECK(vb::lookup(in, "/user/hand/left/input/thumbrest/touch", h, f, b, vx, vy) == vb::NONE);   // not in the file
+    const char* j = R"({"v":1,"mode":{"poses":"pass","buttons":"set"},"vr":{"left":{"thumbrest":true}}})";
+    vb::Input t{};
+    CHECK(vb::parse(j, std::strlen(j), t));
+    CHECK(vb::lookup(t, "/user/hand/left/input/thumbrest/touch", h, f, b, vx, vy) == vb::BOOL && b);
+}
+
 static void bad_json_keeps_previous() {
     vb::Input in = parsed();
     const char* half = "{\"v\":1,";
@@ -129,6 +143,7 @@ int main() {
     grip_pose();
     unknown_path_is_none();
     unset_hand_value_is_none();
+    bare_paths_and_thumbrest();
     bad_json_keeps_previous();
     wrong_version_rejected();
     float_binding_asked_as_button();

@@ -29,8 +29,8 @@ struct Hand {
     Pose grip, aim;
     float trigger, squeeze;
     float stick_x, stick_y;
-    bool a, b, x, y, menu, stick_click;
-    bool trigger_set, squeeze_set, stick_set, a_set, b_set, x_set, y_set, menu_set, stick_click_set;
+    bool a, b, x, y, menu, stick_click, thumbrest;
+    bool trigger_set, squeeze_set, stick_set, a_set, b_set, x_set, y_set, menu_set, stick_click_set, thumbrest_set;
 };
 
 struct Input {
@@ -190,6 +190,7 @@ struct Walker {
             else if (std::strcmp(rest, "y") == 0) { h.y = b; h.y_set = true; }
             else if (std::strcmp(rest, "menu") == 0) { h.menu = b; h.menu_set = true; }
             else if (std::strcmp(rest, "stick_click") == 0) { h.stick_click = b; h.stick_click_set = true; }
+            else if (std::strcmp(rest, "thumbrest") == 0) { h.thumbrest = b; h.thumbrest_set = true; }   // 2026-11-01: thumbrest/touch
         }
     }
 };
@@ -236,6 +237,17 @@ inline Kind lookup(const Input& in, const char* binding_path, int& hand, float& 
     const Hand& h = in.hand[hand];
     if (std::strcmp(rest, "grip/pose") == 0) return h.grip.set ? POSE_GRIP : NONE;
     if (std::strcmp(rest, "aim/pose") == 0) return h.aim.set ? POSE_AIM : NONE;
+    // 2026-11-01: a bare component path ("/input/squeeze", "/input/trigger", "/input/a") is legal OpenXR and the runtime picks
+    // the value or click under it; Resident Evil Village's REFramework binds its grip and trigger that way, so the file's
+    // squeeze never reached it. A bare path answers like its /value (or /click for the buttons).
+    if (std::strcmp(rest, "trigger") == 0) { if (!h.trigger_set) return NONE; f = h.trigger; return FLOAT; }
+    if (std::strcmp(rest, "squeeze") == 0) { if (!h.squeeze_set) return NONE; f = h.squeeze; return FLOAT; }
+    if (std::strcmp(rest, "a") == 0) { if (!h.a_set) return NONE; b = h.a; return BOOL; }
+    if (std::strcmp(rest, "b") == 0) { if (!h.b_set) return NONE; b = h.b; return BOOL; }
+    if (std::strcmp(rest, "x") == 0) { if (!h.x_set) return NONE; b = h.x; return BOOL; }
+    if (std::strcmp(rest, "y") == 0) { if (!h.y_set) return NONE; b = h.y; return BOOL; }
+    if (std::strcmp(rest, "menu") == 0) { if (!h.menu_set) return NONE; b = h.menu; return BOOL; }
+    if (std::strcmp(rest, "thumbrest/touch") == 0 || std::strcmp(rest, "thumbrest") == 0) { if (!h.thumbrest_set) return NONE; b = h.thumbrest; return BOOL; }
     if (std::strcmp(rest, "trigger/value") == 0) { if (!h.trigger_set) return NONE; f = h.trigger; return FLOAT; }
     if (std::strcmp(rest, "trigger/click") == 0) { if (!h.trigger_set) return NONE; b = h.trigger >= kTriggerClickAt; return BOOL; }
     if (std::strcmp(rest, "squeeze/value") == 0 || std::strcmp(rest, "squeeze/force") == 0) { if (!h.squeeze_set) return NONE; f = h.squeeze; return FLOAT; }
