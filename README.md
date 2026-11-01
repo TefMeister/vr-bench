@@ -9,9 +9,9 @@ background while you get on with something else.
 When a real headset is worn, the same layer adds one thing: a button chord (both grips and the left
 trigger, held) that marks "look at this" and records where the hand or the gun was pointing.
 
-Status: being built (October 2026). The layer's newest build is on the Releases page (0.1.1: pretend hands,
-buttons and sticks from the file, and its log now says in one line why a hand is or is not moved from the file;
-nothing switched on by installing). The plugin half that drives it, and the
+Status: being built (October 2026). The layer's newest build is on the Releases page (0.1.2: pretend hands,
+buttons and sticks from the file, a log line per hand saying why it is or is not moved, and since 0.1.2 the bare
+controller paths some games bind, such as Resident Evil Village's; nothing switched on by installing). The plugin half that drives it, and the
 "look at this" chord, are still being built, so there is nothing to use on its own yet.
 
 
